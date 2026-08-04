@@ -180,6 +180,17 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     return project
 
 
+@app.delete("/projects/{project_id}", status_code=204, tags=["projects"])
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    """Delete a project and all its tasks (cascade), or 404."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not found.")
+    db.delete(project)
+    db.commit()
+    return None
+
+
 # ═══════════════════════════════════════════════════════════════════
 # STATISTICS endpoint (Section 1, Task 5)
 # SQL aggregation — COUNT + GROUP BY executed in the query, not in Python.

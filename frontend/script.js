@@ -318,15 +318,37 @@ function renderProjects(projectArray) {
   // "All tasks" item
   const allItem = document.createElement("div");
   allItem.className = `project-item${activeProjectId === null ? " active" : ""}`;
-  allItem.textContent = "📋 All tasks";
-  allItem.addEventListener("click", () => selectProject(null));
+
+  const allName = document.createElement("span");
+  allName.className = "project-item-name";
+  allName.textContent = "📋 All tasks";
+  allName.addEventListener("click", () => selectProject(null));
+  allItem.appendChild(allName);
   projectListEl.appendChild(allItem);
 
   projectArray.forEach((p) => {
     const item = document.createElement("div");
     item.className = `project-item${activeProjectId === p.id ? " active" : ""}`;
-    item.textContent = p.name;             // textContent
-    item.addEventListener("click", () => selectProject(p.id));
+
+    // Project name (clickable to filter)
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "project-item-name";
+    nameSpan.textContent = p.name;             // textContent
+    nameSpan.addEventListener("click", () => selectProject(p.id));
+    item.appendChild(nameSpan);
+
+    // Delete button
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn-delete-project";
+    delBtn.title = "Delete project";
+    delBtn.textContent = "🗑";
+    delBtn.type = "button";
+    delBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteProject(p.id, p.name);
+    });
+    item.appendChild(delBtn);
+
     projectListEl.appendChild(item);
   });
 
@@ -568,6 +590,26 @@ async function deleteTask(id) {
     tasks = tasks.filter((t) => t.id !== id);
     renderTasks(tasks);
     showToast("Task deleted.");
+  } catch (err) {
+    showToast(`Delete failed: ${err.message}`, "error");
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Delete Project
+// ─────────────────────────────────────────────────────────────────
+
+async function deleteProject(id, name) {
+  if (!confirm(`Delete project "${name}"?\n\nThis will also delete all tasks inside it.`)) return;
+  try {
+    await apiFetch(`/projects/${id}`, { method: "DELETE" });
+    projects = projects.filter((p) => p.id !== id);
+    // If the deleted project was active, go back to "All tasks"
+    if (activeProjectId === id) activeProjectId = null;
+    renderProjects(projects);
+    // Reload tasks since some may have been deleted
+    await loadTasks(activeProjectId);
+    showToast(`Project "${name}" deleted.`);
   } catch (err) {
     showToast(`Delete failed: ${err.message}`, "error");
   }
