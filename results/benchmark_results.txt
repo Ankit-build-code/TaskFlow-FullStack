@@ -1,0 +1,38 @@
+========================================================================
+  TaskFlow -- Algorithm Benchmark
+  insertion_sort / binary_search / linear_search
+========================================================================
+
+-- Dataset size: 10 records ----------------------------------------
+  insertion_sort   comparisons =            9   time =    0.01 ms
+  binary_search    comparisons =            3   time =  0.0057 ms   found_at_index = 5
+  linear_search    comparisons =            6   time =  0.0042 ms   found_at_index = 5
+  linear / binary  ratio        =          2.0x
+
+-- Dataset size: 500 records ----------------------------------------
+  insertion_sort   comparisons =          499   time =    0.07 ms
+  binary_search    comparisons =            8   time =  0.0027 ms   found_at_index = 250
+  linear_search    comparisons =          251   time =  0.0140 ms   found_at_index = 250
+  linear / binary  ratio        =         31.4x
+
+-- Dataset size: 3,000 records ----------------------------------------
+  insertion_sort   comparisons =        2,999   time =    0.40 ms
+  binary_search    comparisons =           11   time =  0.0032 ms   found_at_index = 1500
+  linear_search    comparisons =        1,501   time =  0.0884 ms   found_at_index = 1500
+  linear / binary  ratio        =        136.5x
+
+========================================================================
+  Complexity Summary
+========================================================================
+  insertion_sort : best O(n)   | worst O(n^2)
+  binary_search  : best O(1)   | worst O(log n)
+  linear_search  : best O(1)   | worst O(n)
+
+  Sort-first analysis (see README for full write-up)
+  --------------------------------------------------
+  At n=3000, insertion_sort performs ~4.5M comparisons.
+  binary_search then finds any target in <=12 comparisons.
+  linear_search on unsorted averages n/2 = 1500 comparisons per query.
+  For Q queries between re-sorts: sort-first wins when Q > n/log2(n).
+  At n=3000 the break-even is ~273 queries -- easily exceeded daily.
+========================================================================
