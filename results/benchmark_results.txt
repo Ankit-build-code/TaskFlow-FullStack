@@ -5,20 +5,20 @@
 
 -- Dataset size: 10 records ----------------------------------------
   insertion_sort   comparisons =            9   time =    0.01 ms
-  binary_search    comparisons =            3   time =  0.0057 ms   found_at_index = 5
-  linear_search    comparisons =            6   time =  0.0042 ms   found_at_index = 5
+  binary_search    comparisons =            3   time =  0.0056 ms   found_at_index = 5
+  linear_search    comparisons =            6   time =  0.0059 ms   found_at_index = 5
   linear / binary  ratio        =          2.0x
 
 -- Dataset size: 500 records ----------------------------------------
-  insertion_sort   comparisons =          499   time =    0.07 ms
-  binary_search    comparisons =            8   time =  0.0027 ms   found_at_index = 250
-  linear_search    comparisons =          251   time =  0.0140 ms   found_at_index = 250
+  insertion_sort   comparisons =          499   time =    0.16 ms
+  binary_search    comparisons =            8   time =  0.0064 ms   found_at_index = 250
+  linear_search    comparisons =          251   time =  0.0329 ms   found_at_index = 250
   linear / binary  ratio        =         31.4x
 
 -- Dataset size: 3,000 records ----------------------------------------
-  insertion_sort   comparisons =        2,999   time =    0.40 ms
-  binary_search    comparisons =           11   time =  0.0032 ms   found_at_index = 1500
-  linear_search    comparisons =        1,501   time =  0.0884 ms   found_at_index = 1500
+  insertion_sort   comparisons =        2,999   time =    1.62 ms
+  binary_search    comparisons =           11   time =  0.0114 ms   found_at_index = 1500
+  linear_search    comparisons =        1,501   time =  0.3705 ms   found_at_index = 1500
   linear / binary  ratio        =        136.5x
 
 ========================================================================
