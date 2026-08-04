@@ -16,8 +16,10 @@ env/
 
 # Environment / secrets — NEVER commit these
 .env
-.env.*
 backend/.env
+# But DO commit the example file
+!.env.example
+!backend/.env.example
 
 # Database files (generated at runtime)
 *.db
