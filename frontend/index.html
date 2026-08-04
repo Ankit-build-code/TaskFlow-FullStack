@@ -16,17 +16,15 @@
     </div>
   </header>
 
-  <!-- ─── Main layout ───────────────────────────────────────────── -->
   <main class="main-content">
 
-    <!-- ════════════════════════════════════════════════════════════
-         LEFT SIDEBAR
-         Order: 1) Add User   2) Projects (with delete)
-    ════════════════════════════════════════════════════════════ -->
-    <aside class="sidebar">
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 1 : Add User (left)  |  Add Project (right)
+    ══════════════════════════════════════════════════════════ -->
+    <div class="top-row">
 
-      <!-- ── 1. Add User (TOP) ──────────────────────────────────── -->
-      <section class="panel" id="user-panel">
+      <!-- Add User -->
+      <div class="panel half-panel" id="user-panel">
         <h2>&#128100; Add User</h2>
         <form id="user-form" novalidate>
           <div class="field-group">
@@ -41,12 +39,11 @@
           </div>
           <button type="submit" class="btn btn-secondary btn-full">+ Add User</button>
         </form>
-      </section>
+      </div>
 
-      <!-- ── 2. Projects (with delete buttons) ─────────────────── -->
-      <section class="panel" id="project-panel">
-        <h2>&#128193; Projects</h2>
-
+      <!-- Add Project -->
+      <div class="panel half-panel" id="project-panel">
+        <h2>&#128193; Add Project</h2>
         <form id="project-form" novalidate>
           <div class="field-group">
             <label for="project-name-input">Project name</label>
@@ -56,30 +53,70 @@
           </div>
           <div class="field-group">
             <label for="project-owner-input">Owner user ID</label>
-            <input id="project-owner-input" type="number"
-                   placeholder="User ID" min="1" />
+            <input id="project-owner-input" type="number" placeholder="User ID" min="1" />
             <span class="field-error" id="project-owner-error" aria-live="polite"></span>
           </div>
           <button type="submit" class="btn btn-secondary btn-full">+ Add Project</button>
         </form>
 
-        <!-- Project list rendered here (each item has a delete button) -->
+        <!-- Project list with delete buttons -->
         <div id="project-list" class="project-list"></div>
-      </section>
+      </div>
 
-    </aside>
+    </div><!-- /top-row -->
 
-    <!-- ════════════════════════════════════════════════════════════
-         MAIN CONTENT AREA
-         Order: 1) Add Task   2) AI Quick-Add   3) Search/Sort   4) Task List
-    ════════════════════════════════════════════════════════════ -->
-    <section class="task-area">
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 2 : Search & Sort bar (full width)
+    ══════════════════════════════════════════════════════════ -->
+    <div class="panel controls-panel">
+      <h2>&#128269; Search &amp; Sort</h2>
+      <div class="controls-row">
+        <div class="field-group grow">
+          <label for="search-input">Search by exact title</label>
+          <input id="search-input" type="text" placeholder="Exact task title…" />
+        </div>
+        <div class="field-group">
+          <label for="search-algo-select">Algorithm</label>
+          <select id="search-algo-select">
+            <option value="binary">Binary search</option>
+            <option value="linear">Linear search</option>
+          </select>
+        </div>
+        <button id="search-btn" class="btn btn-secondary">Search</button>
 
-      <!-- ── 1. Add Task ────────────────────────────────────────── -->
-      <div class="panel" id="add-task-panel">
-        <h2>&#10010; Add Task</h2>
+        <div class="field-group">
+          <label for="sort-select">Sort by</label>
+          <select id="sort-select">
+            <option value="">— none —</option>
+            <option value="priority">Priority</option>
+            <option value="due_date">Due date</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="filter-project-select">Filter project</label>
+          <select id="filter-project-select">
+            <option value="">All projects</option>
+          </select>
+        </div>
+        <button id="sort-btn" class="btn btn-secondary">Sort</button>
+        <button id="clear-search-btn" class="btn btn-ghost">Clear</button>
+      </div>
+      <div id="search-result-banner" class="search-banner" role="status" aria-live="polite"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 3 : Task List (columns: Todo | In Progress | Done)
+    ══════════════════════════════════════════════════════════ -->
+    <div class="panel task-board-panel">
+      <div class="task-board-header">
+        <h2>&#9989; Tasks <span id="task-count-badge" class="badge">0</span></h2>
+        <!-- Add Task inline button -->
+        <button id="toggle-add-task-btn" class="btn btn-primary btn-sm">+ Add Task</button>
+      </div>
+
+      <!-- Collapsible Add Task form -->
+      <div id="add-task-panel" class="add-task-collapsed">
         <form id="task-form" novalidate>
-          <!-- Row: title + priority + due date + project -->
           <div class="form-row">
             <div class="field-group grow">
               <label for="task-title-input">Title <span class="required">*</span></label>
@@ -108,80 +145,81 @@
               <span class="field-error" id="task-project-error" aria-live="polite"></span>
             </div>
           </div>
-          <!-- Description below title row -->
           <div class="field-group full-width">
             <label for="task-desc-input">Description <span class="optional">(optional)</span></label>
             <textarea id="task-desc-input" rows="2"
                       placeholder="Add more details about this task…"></textarea>
           </div>
-          <button type="submit" class="btn btn-primary">Add Task</button>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Task</button>
+            <button type="button" id="cancel-add-task-btn" class="btn btn-ghost">Cancel</button>
+          </div>
         </form>
       </div>
 
-      <!-- ── 2. AI Quick-Add ────────────────────────────────────── -->
-      <div class="panel" id="quick-add-panel">
-        <h2>&#10024; AI Quick-Add</h2>
-        <p class="panel-hint">Describe your task in plain English — AI will fill in the details.</p>
-        <form id="quick-add-form" novalidate>
-          <div class="form-row">
-            <div class="field-group grow">
-              <label for="quick-desc-input">Task description</label>
-              <input id="quick-desc-input" type="text"
-                     placeholder='e.g. "Finish the report next Friday, it is urgent"'
-                     autocomplete="off" />
-              <span class="field-error" id="quick-desc-error" aria-live="polite"></span>
-            </div>
-            <div class="field-group">
-              <label for="quick-project-select">Project <span class="required">*</span></label>
-              <select id="quick-project-select">
-                <option value="">— select —</option>
-              </select>
-              <span class="field-error" id="quick-project-error" aria-live="polite"></span>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-ai">&#10024; Quick-Add (AI)</button>
-        </form>
-      </div>
+      <!-- Kanban-style 3-column task board -->
+      <div class="task-columns">
 
-      <!-- ── 3. Search + Sort controls ─────────────────────────── -->
-      <div class="panel controls-panel">
-        <h2>&#128269; Search &amp; Sort</h2>
-        <div class="controls-row">
-          <div class="field-group grow">
-            <label for="search-input">Search by exact title</label>
-            <input id="search-input" type="text" placeholder="Exact task title…" />
+        <!-- Column: To-do -->
+        <div class="task-column">
+          <div class="column-header todo-header">
+            <span>&#128203; To-do</span>
+            <span class="badge" id="todo-count">0</span>
           </div>
-          <div class="field-group">
-            <label for="search-algo-select">Algorithm</label>
-            <select id="search-algo-select">
-              <option value="binary">Binary search</option>
-              <option value="linear">Linear search</option>
-            </select>
-          </div>
-          <button id="search-btn" class="btn btn-secondary">Search</button>
-
-          <div class="field-group">
-            <label for="sort-select">Sort by</label>
-            <select id="sort-select">
-              <option value="">— none —</option>
-              <option value="priority">Priority</option>
-              <option value="due_date">Due date</option>
-            </select>
-          </div>
-          <button id="sort-btn" class="btn btn-secondary">Sort</button>
-          <button id="clear-search-btn" class="btn btn-ghost">Clear</button>
+          <ul id="task-list-todo" class="task-list" aria-label="To-do tasks"></ul>
+          <p class="empty-col" id="empty-todo">No tasks here</p>
         </div>
-        <div id="search-result-banner" class="search-banner" role="status" aria-live="polite"></div>
-      </div>
 
-      <!-- ── 4. Task list ───────────────────────────────────────── -->
-      <div class="panel task-list-container" id="task-list-container">
-        <h2>&#9989; Tasks <span id="task-count-badge" class="badge">0</span></h2>
-        <ul id="task-list" class="task-list" aria-label="Task list"></ul>
-        <p id="empty-state" class="empty-state">No tasks yet. Add one above!</p>
-      </div>
+        <!-- Column: In Progress -->
+        <div class="task-column">
+          <div class="column-header inprogress-header">
+            <span>&#9881; In Progress</span>
+            <span class="badge" id="inprogress-count">0</span>
+          </div>
+          <ul id="task-list-inprogress" class="task-list" aria-label="In-progress tasks"></ul>
+          <p class="empty-col" id="empty-inprogress">No tasks here</p>
+        </div>
 
-    </section>
+        <!-- Column: Done -->
+        <div class="task-column">
+          <div class="column-header done-header">
+            <span>&#10003; Done</span>
+            <span class="badge" id="done-count">0</span>
+          </div>
+          <ul id="task-list-done" class="task-list" aria-label="Done tasks"></ul>
+          <p class="empty-col" id="empty-done">No tasks here</p>
+        </div>
+
+      </div><!-- /task-columns -->
+    </div><!-- /task-board-panel -->
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 4 : AI Quick-Add (full width, at bottom)
+    ══════════════════════════════════════════════════════════ -->
+    <div class="panel" id="quick-add-panel">
+      <h2>&#10024; AI Quick-Add</h2>
+      <p class="panel-hint">Describe your task in plain English — AI will fill in title, priority and due date.</p>
+      <form id="quick-add-form" novalidate>
+        <div class="form-row">
+          <div class="field-group grow">
+            <label for="quick-desc-input">Task description</label>
+            <input id="quick-desc-input" type="text"
+                   placeholder='e.g. "Finish the report next Friday, it is urgent"'
+                   autocomplete="off" />
+            <span class="field-error" id="quick-desc-error" aria-live="polite"></span>
+          </div>
+          <div class="field-group">
+            <label for="quick-project-select">Project <span class="required">*</span></label>
+            <select id="quick-project-select">
+              <option value="">— select —</option>
+            </select>
+            <span class="field-error" id="quick-project-error" aria-live="polite"></span>
+          </div>
+          <button type="submit" class="btn btn-ai">&#10024; Quick-Add</button>
+        </div>
+      </form>
+    </div>
+
   </main>
 
   <!-- ─── Edit task modal ───────────────────────────────────────── -->
@@ -230,7 +268,7 @@
     </div>
   </div>
 
-  <!-- ─── Toast notification ────────────────────────────────────── -->
+  <!-- ─── Toast ────────────────────────────────────────────────── -->
   <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
 
   <script src="script.js"></script>
