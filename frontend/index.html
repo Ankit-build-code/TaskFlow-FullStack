@@ -100,6 +100,12 @@
               <span class="field-error" id="task-project-error" aria-live="polite"></span>
             </div>
           </div>
+          <!-- Description below the title bar -->
+          <div class="field-group full-width">
+            <label for="task-desc-input">Description <span class="optional">(optional)</span></label>
+            <textarea id="task-desc-input" rows="2"
+                      placeholder="Add more details about this task…"></textarea>
+          </div>
           <button type="submit" class="btn btn-primary">Add Task</button>
         </form>
 
@@ -177,6 +183,10 @@
           <label for="edit-title">Title <span class="required">*</span></label>
           <input id="edit-title" type="text" />
           <span class="field-error" id="edit-title-error" aria-live="polite"></span>
+        </div>
+        <div class="field-group">
+          <label for="edit-description">Description</label>
+          <textarea id="edit-description" rows="2" placeholder="Add more details…"></textarea>
         </div>
         <div class="field-group">
           <label for="edit-priority">Priority</label>

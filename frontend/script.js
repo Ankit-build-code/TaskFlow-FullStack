@@ -44,6 +44,7 @@ const projectListEl     = document.getElementById("project-list");
 // Task form
 const taskForm          = document.getElementById("task-form");
 const taskTitleInput    = document.getElementById("task-title-input");
+const taskDescInput     = document.getElementById("task-desc-input");
 const taskPriorityInput = document.getElementById("task-priority-input");
 const taskDueInput      = document.getElementById("task-due-input");
 const taskProjectSelect = document.getElementById("task-project-select");
@@ -71,6 +72,7 @@ const editModal         = document.getElementById("edit-modal");
 const editForm          = document.getElementById("edit-form");
 const editTaskId        = document.getElementById("edit-task-id");
 const editTitle         = document.getElementById("edit-title");
+const editDescription   = document.getElementById("edit-description");
 const editPriority      = document.getElementById("edit-priority");
 const editDue           = document.getElementById("edit-due");
 const editStatus        = document.getElementById("edit-status");
@@ -200,6 +202,15 @@ function renderTasks(taskArray) {
     li.className = `task-item${task.status === "done" ? " done" : ""}`;
     li.dataset.id = String(task.id);
 
+    // ── Checkbox (toggles done status) ─────────────────────────
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "task-checkbox";
+    checkbox.checked = task.status === "done";
+    checkbox.title = "Mark as done";
+    checkbox.addEventListener("change", () => toggleTaskDone(task, checkbox, li));
+    li.appendChild(checkbox);
+
     // Content wrapper
     const content = document.createElement("div");
     content.className = "task-content";
@@ -209,6 +220,14 @@ function renderTasks(taskArray) {
     titleEl.className = "task-title";
     titleEl.textContent = task.title;   // ← textContent (safe DOM update)
     content.appendChild(titleEl);
+
+    // Description below title (if present)
+    if (task.description) {
+      const descEl = document.createElement("p");
+      descEl.className = "task-desc-text";
+      descEl.textContent = task.description;  // textContent
+      content.appendChild(descEl);
+    }
 
     // Meta row
     const meta = document.createElement("div");
@@ -255,6 +274,25 @@ function renderTasks(taskArray) {
 
   // Persist to localStorage every time the list changes
   persistTasksToLS(taskArray);
+}
+
+/** Toggle a task's done status via checkbox click. */
+async function toggleTaskDone(task, checkbox, li) {
+  const newStatus = checkbox.checked ? "done" : "todo";
+  try {
+    const updated = await apiFetch(`/tasks/${task.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const idx = tasks.findIndex((t) => t.id === task.id);
+    if (idx !== -1) tasks[idx] = updated;
+    li.classList.toggle("done", newStatus === "done");
+    persistTasksToLS(tasks);
+    showToast(newStatus === "done" ? "Task marked as done!" : "Task reopened.");
+  } catch (err) {
+    checkbox.checked = !checkbox.checked; // revert on failure
+    showToast(`Update failed: ${err.message}`, "error");
+  }
 }
 
 /** Populate project dropdowns and sidebar project list. */
@@ -368,6 +406,7 @@ taskForm.addEventListener("submit", async (e) => {
 
   const body = {
     title,
+    description: taskDescInput.value.trim() || null,
     priority: taskPriorityInput.value,
     due_date: taskDueInput.value.trim() || null,
     status: "todo",
@@ -458,6 +497,7 @@ quickAddForm.addEventListener("submit", async (e) => {
 function openEditModal(task) {
   editTaskId.value = String(task.id);
   editTitle.value  = task.title;
+  editDescription.value = task.description || "";
   editPriority.value = task.priority;
   editDue.value    = task.due_date || "";
   editStatus.value = task.status;
@@ -495,6 +535,7 @@ editForm.addEventListener("submit", async (e) => {
   const id = parseInt(editTaskId.value, 10);
   const body = {
     title,
+    description: editDescription.value.trim() || null,
     priority: editPriority.value,
     due_date: editDue.value.trim() || null,
     status: editStatus.value,

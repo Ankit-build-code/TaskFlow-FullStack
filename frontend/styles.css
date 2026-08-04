@@ -162,7 +162,8 @@ label {
 input[type="text"],
 input[type="email"],
 input[type="number"],
-select {
+select,
+textarea {
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -172,17 +173,30 @@ select {
   padding: 8px 10px;            /* box-model: padding */
   transition: border-color var(--transition);
   width: 100%;
+  resize: vertical;
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--color-accent);
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--color-text-muted);
   opacity: 0.6;
+}
+
+.field-group.full-width {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
@@ -374,6 +388,24 @@ input::placeholder {
 .task-due {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* ── Checkbox (done toggle) ─────────────────────────────────────── */
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  margin-top: 3px;
+}
+
+/* ── Task description text ──────────────────────────────────────── */
+.task-desc-text {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  word-break: break-word;
 }
 
 .task-actions {
