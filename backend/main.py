@@ -25,16 +25,16 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from database import engine, SessionLocal
-from models import Base, User, Project, Task
-from schemas import (
+from backend.database import engine, SessionLocal
+from backend.models import Base, User, Project, Task
+from backend.schemas import (
     UserCreate, UserResponse,
     ProjectCreate, ProjectResponse,
     TaskCreate, TaskUpdate, TaskResponse,
     ProjectStats, QuickAddRequest,
 )
-from algorithms import insertion_sort, binary_search, linear_search
-from ai_parser import parse_task_description
+from backend.algorithms import insertion_sort, binary_search, linear_search
+from backend.ai_parser import parse_task_description
 
 # ─────────────────────────────────────────────────────────────────
 # Logging
