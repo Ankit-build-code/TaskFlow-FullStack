@@ -1,11 +1,12 @@
 "use strict";
 
 // -----------------------------------------------------------------
-// Config
+// Config & Constants
 // -----------------------------------------------------------------
 const API_BASE        = "http://127.0.0.1:8000";
 const LS_TASKS_KEY    = "taskflow_tasks";
 const LS_PROJECTS_KEY = "taskflow_projects";
+const LS_TOKEN_KEY    = "taskflow_token";
 
 // -----------------------------------------------------------------
 // State
@@ -13,6 +14,7 @@ const LS_PROJECTS_KEY = "taskflow_projects";
 let tasks    = [];
 let projects = [];
 let activeProjectId = null;
+let authToken = localStorage.getItem(LS_TOKEN_KEY) || null;
 
 // -----------------------------------------------------------------
 // DOM refs
@@ -93,7 +95,7 @@ const modalCancelBtn   = document.getElementById("modal-cancel-btn");
 const toast = document.getElementById("toast");
 
 // -----------------------------------------------------------------
-// Utilities
+// Utilities & Auth API Fetch Wrapper
 // -----------------------------------------------------------------
 
 function showToast(msg, type = "success") {
@@ -122,16 +124,33 @@ function loadProjectsFromLS() {
   catch (_) { return []; }
 }
 
+/** Authenticated Fetch helper that attaches JWT Token */
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  });
+  const headers = { ...options.headers };
+  
+  if (!(options.body instanceof URLSearchParams)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401 && path !== "/token") {
+    localStorage.removeItem(LS_TOKEN_KEY);
+    authToken = null;
+    showToast("Session expired. Please log in again.", "error");
+    throw new Error("Unauthorized");
+  }
+
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
     try { const b = await res.json(); detail = b.detail || JSON.stringify(b); } catch (_) {}
     throw new Error(detail);
   }
+
   if (res.status === 204) return null;
   return res.json();
 }
@@ -174,13 +193,11 @@ function makeChip(text, cls) {
   return s;
 }
 
-/** Build a single task <li> element. */
 function buildTaskItem(task) {
   const li = document.createElement("li");
   li.className = `task-item${task.status === "done" ? " done" : ""}`;
   li.dataset.id = String(task.id);
 
-  // Checkbox
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.className = "task-checkbox";
@@ -189,19 +206,18 @@ function buildTaskItem(task) {
   cb.addEventListener("change", () => toggleTaskDone(task, cb, li));
   li.appendChild(cb);
 
-  // Content
   const content = document.createElement("div");
   content.className = "task-content";
 
   const titleEl = document.createElement("span");
   titleEl.className = "task-title";
-  titleEl.textContent = task.title;           // textContent — safe
+  titleEl.textContent = task.title;
   content.appendChild(titleEl);
 
   if (task.description) {
     const desc = document.createElement("p");
     desc.className = "task-desc-text";
-    desc.textContent = task.description;      // textContent — safe
+    desc.textContent = task.description;
     content.appendChild(desc);
   }
 
@@ -217,7 +233,6 @@ function buildTaskItem(task) {
   content.appendChild(meta);
   li.appendChild(content);
 
-  // Actions
   const actions = document.createElement("div");
   actions.className = "task-actions";
 
@@ -240,11 +255,7 @@ function buildTaskItem(task) {
   return li;
 }
 
-/**
- * Render tasks into the 3 kanban columns.
- */
 function renderTasks(taskArray) {
-  // Clear all columns
   [todoList, inprogressList, doneList].forEach(ul => {
     while (ul.firstChild) ul.removeChild(ul.firstChild);
   });
@@ -278,7 +289,7 @@ function renderTasks(taskArray) {
 }
 
 // -----------------------------------------------------------------
-// Toggle done via checkbox
+// Task Operations
 // -----------------------------------------------------------------
 
 async function toggleTaskDone(task, cb, li) {
@@ -298,12 +309,7 @@ async function toggleTaskDone(task, cb, li) {
   }
 }
 
-// -----------------------------------------------------------------
-// Project rendering
-// -----------------------------------------------------------------
-
 function renderProjects(projectArray) {
-  // Update all project selects
   [taskProjectSelect, quickProjectSelect, filterProjectSel].forEach(sel => {
     const prev = sel.value;
     while (sel.options.length > 1) sel.remove(1);
@@ -316,10 +322,8 @@ function renderProjects(projectArray) {
     if (prev) sel.value = prev;
   });
 
-  // Sidebar project list
   while (projectListEl.firstChild) projectListEl.removeChild(projectListEl.firstChild);
 
-  // "All projects" entry
   const allItem = document.createElement("div");
   allItem.className = `project-item${activeProjectId === null ? " active" : ""}`;
   const allName = document.createElement("span");
@@ -354,33 +358,31 @@ function renderProjects(projectArray) {
 }
 
 // -----------------------------------------------------------------
-// Data loading
+// Data Loading
 // -----------------------------------------------------------------
 
 async function loadTasks(projectId = null) {
-  const cached = loadTasksFromLS();
-  if (cached.length > 0) renderTasks(cached);
-
   try {
     const qs = projectId ? `?project_id=${projectId}` : "";
     const data = await apiFetch(`/tasks${qs}`);
     tasks = data;
     renderTasks(tasks);
   } catch (err) {
-    showToast(`Could not load tasks: ${err.message}`, "error");
+    if (err.message !== "Unauthorized") {
+      showToast(`Could not load tasks: ${err.message}`, "error");
+    }
   }
 }
 
 async function loadProjects() {
-  const cached = loadProjectsFromLS();
-  if (cached.length > 0) { projects = cached; renderProjects(projects); }
-
   try {
     const data = await apiFetch("/projects");
     projects = data;
     renderProjects(projects);
   } catch (err) {
-    showToast(`Could not load projects: ${err.message}`, "error");
+    if (err.message !== "Unauthorized") {
+      showToast(`Could not load projects: ${err.message}`, "error");
+    }
   }
 }
 
@@ -391,7 +393,7 @@ async function selectProject(projectId) {
 }
 
 // -----------------------------------------------------------------
-// Add User
+// User & Auth Login Flow
 // -----------------------------------------------------------------
 
 userForm.addEventListener("submit", async e => {
@@ -399,15 +401,36 @@ userForm.addEventListener("submit", async e => {
   let ok = true;
   const name  = userNameInput.value.trim();
   const email = userEmailInput.value.trim();
-  if (!name)  { setError(userNameError,  "Name required.");         ok = false; } else clearError(userNameError);
+  if (!name)  { setError(userNameError,  "Name required."); ok = false; } else clearError(userNameError);
   if (!email || !email.includes("@")) { setError(userEmailError, "Valid email required."); ok = false; } else clearError(userEmailError);
   if (!ok) return;
 
   try {
-    await apiFetch("/users", { method: "POST", body: JSON.stringify({ name, email }) });
+    // 1. Create User
+    await apiFetch("/users", { 
+      method: "POST", 
+      body: JSON.stringify({ name, email, password: "password123" }) 
+    });
+
+    // 2. Auto Login to acquire JWT Token
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", "password123");
+
+    const tokenRes = await apiFetch("/token", {
+      method: "POST",
+      body: formData,
+    });
+
+    authToken = tokenRes.access_token;
+    localStorage.setItem(LS_TOKEN_KEY, authToken);
+
     userForm.reset();
-    showToast(`User "${name}" created!`);
-  } catch (err) { showToast(`User error: ${err.message}`, "error"); }
+    showToast(`Logged in as "${name}"!`);
+    await init();
+  } catch (err) { 
+    showToast(`Auth error: ${err.message}`, "error"); 
+  }
 });
 
 // -----------------------------------------------------------------
@@ -417,24 +440,18 @@ userForm.addEventListener("submit", async e => {
 projectForm.addEventListener("submit", async e => {
   e.preventDefault();
   let ok = true;
-  const name    = projectNameInput.value.trim();
-  const ownerId = parseInt(projectOwnerInput.value, 10);
-  if (!name)           { setError(projectNameError, "Name required."); ok = false; } else clearError(projectNameError);
-  if (!ownerId || isNaN(ownerId)) { setError(projectOwnerError, "Valid user ID required."); ok = false; } else clearError(projectOwnerError);
+  const name = projectNameInput.value.trim();
+  if (!name) { setError(projectNameError, "Name required."); ok = false; } else clearError(projectNameError);
   if (!ok) return;
 
   try {
-    const p = await apiFetch("/projects", { method: "POST", body: JSON.stringify({ name, owner_id: ownerId }) });
+    const p = await apiFetch("/projects", { method: "POST", body: JSON.stringify({ name }) });
     projects.push(p);
     renderProjects(projects);
     projectForm.reset();
     showToast(`Project "${p.name}" created!`);
   } catch (err) { showToast(`Project error: ${err.message}`, "error"); }
 });
-
-// -----------------------------------------------------------------
-// Delete Project
-// -----------------------------------------------------------------
 
 async function deleteProject(id, name) {
   if (!confirm(`Delete project "${name}"?\nAll tasks inside will also be deleted.`)) return;
@@ -476,7 +493,6 @@ taskForm.addEventListener("submit", async e => {
     tasks.unshift(newTask);
     renderTasks(tasks);
     taskForm.reset();
-    // Close the panel after adding
     addTaskPanel.classList.remove("add-task-open");
     addTaskPanel.classList.add("add-task-collapsed");
     toggleAddTaskBtn.textContent = "+ Add Task";
@@ -522,7 +538,7 @@ quickAddForm.addEventListener("submit", async e => {
 });
 
 // -----------------------------------------------------------------
-// Edit modal
+// Edit Modal
 // -----------------------------------------------------------------
 
 function openEditModal(task) {
@@ -583,7 +599,7 @@ async function deleteTask(id) {
 }
 
 // -----------------------------------------------------------------
-// Search
+// Search & Sort
 // -----------------------------------------------------------------
 
 searchBtn.addEventListener("click", async () => {
@@ -594,7 +610,7 @@ searchBtn.addEventListener("click", async () => {
     const found = await apiFetch(`/tasks/search?title=${encodeURIComponent(title)}&algo=${algo}`);
     searchResultBanner.className = "search-banner";
     searchResultBanner.textContent = `Found: "${found.title}" (ID ${found.id}) — ${algo} search`;
-    // Highlight in the board
+
     document.querySelectorAll(".task-item.highlight").forEach(el => el.classList.remove("highlight"));
     const match = document.querySelector(`.task-item[data-id="${found.id}"]`);
     if (match) { match.classList.add("highlight"); match.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
@@ -605,10 +621,6 @@ searchBtn.addEventListener("click", async () => {
 });
 
 searchInput.addEventListener("keydown", e => { if (e.key === "Enter") searchBtn.click(); });
-
-// -----------------------------------------------------------------
-// Sort
-// -----------------------------------------------------------------
 
 sortBtn.addEventListener("click", async () => {
   const sortBy    = sortSelect.value;
@@ -624,10 +636,6 @@ sortBtn.addEventListener("click", async () => {
   } catch (err) { showToast(`Sort failed: ${err.message}`, "error"); }
 });
 
-// -----------------------------------------------------------------
-// Clear
-// -----------------------------------------------------------------
-
 clearSearchBtn.addEventListener("click", async () => {
   searchInput.value = "";
   searchResultBanner.textContent = "";
@@ -641,6 +649,10 @@ clearSearchBtn.addEventListener("click", async () => {
 // -----------------------------------------------------------------
 
 async function init() {
+  if (!authToken) {
+    showToast("Please register or log in first.", "error");
+    return;
+  }
   await loadProjects();
   await loadTasks();
 }

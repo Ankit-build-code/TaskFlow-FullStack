@@ -1,6 +1,6 @@
 """
 Pydantic request/response schemas for TaskFlow.
-Includes Field constraints and custom validators.
+Includes Field constraints, custom validators, and Auth schemas.
 """
 
 from __future__ import annotations
@@ -8,11 +8,23 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, EmailStr
 
 
+# ─────────────────────────── Auth & Token ────────────────────
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+
 # ─────────────────────────── User ────────────────────────────
 
 class UserCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
+    password: str = Field(..., min_length=6, max_length=100)
 
     @field_validator("name")
     @classmethod
@@ -35,7 +47,6 @@ class UserResponse(BaseModel):
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    owner_id: int
 
     @field_validator("name")
     @classmethod
@@ -71,7 +82,6 @@ class TaskCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def title_not_blank(cls, v: str) -> str:
-        """Reject blank/whitespace-only titles."""
         if not v.strip():
             raise ValueError("title must not be blank or whitespace-only")
         return v.strip()
@@ -79,7 +89,6 @@ class TaskCreate(BaseModel):
     @field_validator("priority")
     @classmethod
     def priority_must_be_valid(cls, v: str) -> str:
-        """Restrict priority to the closed set low/medium/high."""
         if v not in VALID_PRIORITIES:
             raise ValueError(f"priority must be one of {sorted(VALID_PRIORITIES)}")
         return v
@@ -153,5 +162,4 @@ class QuickAddRequest(BaseModel):
     @field_validator("description")
     @classmethod
     def description_not_blank(cls, v: str) -> str:
-        # Allow whitespace-only (the parser handles it → "Untitled task")
         return v
