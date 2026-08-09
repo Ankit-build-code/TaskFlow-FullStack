@@ -132,27 +132,38 @@ async function apiFetch(path, options = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  if (authToken) {
+  // 1. JWT token tabhi bhejo jab token ho AUR path login/user creation waala na ho
+  if (authToken && path !== "/token" && path !== "/users") {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  if (res.status === 401 && path !== "/token") {
-    localStorage.removeItem(LS_TOKEN_KEY);
-    authToken = null;
-    showToast("Session expired. Please log in again.", "error");
-    throw new Error("Unauthorized");
+    // 2. Clear token if expired
+    if (res.status === 401 && path !== "/token") {
+      localStorage.removeItem(LS_TOKEN_KEY);
+      authToken = null;
+      showToast("Session expired. Please log in again.", "error");
+      throw new Error("Unauthorized");
+    }
+
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`;
+      try { const b = await res.json(); detail = b.detail || JSON.stringify(b); } catch (_) {}
+      throw new Error(detail);
+    }
+
+    if (res.status === 204) return null;
+    return await res.json();
+
+  } catch (err) {
+    // 3. Agar Network Error ya CORS ka error ho
+    if (err.message === "Failed to fetch") {
+      throw new Error("Backend server connect nahi ho raha hai (Server Check Karein)");
+    }
+    throw err;
   }
-
-  if (!res.ok) {
-    let detail = `HTTP ${res.status}`;
-    try { const b = await res.json(); detail = b.detail || JSON.stringify(b); } catch (_) {}
-    throw new Error(detail);
-  }
-
-  if (res.status === 204) return null;
-  return res.json();
 }
 
 // -----------------------------------------------------------------
