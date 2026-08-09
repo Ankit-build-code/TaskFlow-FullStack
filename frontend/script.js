@@ -363,13 +363,19 @@ function renderProjects(projectArray) {
 
 async function loadTasks(projectId = null) {
   try {
-    const qs = projectId ? `?project_id=${projectId}` : "";
-    const data = await apiFetch(`/tasks${qs}`);
+    const url = projectId ? `/tasks?project_id=${projectId}` : "/tasks";
+    const data = await apiFetch(url);
     tasks = data;
     renderTasks(tasks);
   } catch (err) {
-    if (err.message !== "Unauthorized") {
-      showToast(`Could not load tasks: ${err.message}`, "error");
+    // Agar server se data nahi mila, toh LocalStorage se load karo
+    const cachedTasks = loadTasksFromLS();
+    if (cachedTasks && cachedTasks.length > 0) {
+      tasks = cachedTasks;
+      renderTasks(tasks);
+      showToast("Offline mode: Saved data loaded", "error");
+    } else {
+      showToast(`Tasks load nahi ho paye: ${err.message}`, "error");
     }
   }
 }
@@ -454,15 +460,29 @@ projectForm.addEventListener("submit", async e => {
 });
 
 async function deleteProject(id, name) {
-  if (!confirm(`Delete project "${name}"?\nAll tasks inside will also be deleted.`)) return;
+  // 1. User se confirm karo
+  if (!confirm(`Delete project "${name}"?`)) return;
+
   try {
+    // 2. Server se delete karo
     await apiFetch(`/projects/${id}`, { method: "DELETE" });
+
+    // 3. Local list se hatao
     projects = projects.filter(p => p.id !== id);
-    if (activeProjectId === id) activeProjectId = null;
+
+    // 4. Reset karo agar wahi project active tha
+    if (activeProjectId === id) {
+      activeProjectId = null;
+    }
+
+    // 5. Screen update karo
     renderProjects(projects);
-    await loadTasks(activeProjectId);
-    showToast(`Project "${name}" deleted.`);
-  } catch (err) { showToast(`Delete failed: ${err.message}`, "error"); }
+    loadTasks(null);
+    showToast("Project deleted!");
+
+  } catch (err) {
+    showToast("Delete nahi ho paya", "error");
+  }
 }
 
 // -----------------------------------------------------------------
@@ -658,3 +678,17 @@ async function init() {
 }
 
 init();
+function logoutUser() {
+  // 1. LocalStorage se token aur data hatao
+  localStorage.removeItem(LS_TOKEN_KEY);
+  authToken = null;
+
+  // 2. Local lists khali karo
+  tasks = [];
+  projects = [];
+
+  // 3. Screen update karo
+  renderTasks([]);
+  renderProjects([]);
+  showToast("Logged out successfully!");
+}
