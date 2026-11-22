@@ -462,3 +462,10 @@ def delete_task(
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "ok", "app": "TaskFlow"}
+
+@app.get("/")
+def home():
+    return {
+        "message": "Backend is running successfully!",
+        "status": "success"
+    }
