@@ -162,4 +162,6 @@ class QuickAddRequest(BaseModel):
     @field_validator("description")
     @classmethod
     def description_not_blank(cls, v: str) -> str:
-        return v
+        if not v.strip():
+            raise ValueError("description must not be blank or whitespace-only")
+        return v.strip()

@@ -2,10 +2,11 @@
 main.py — TaskFlow FastAPI application with JWT Security & Authorization.
 """
 
+import os
 import time
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import bcrypt
 from jose import JWTError, jwt
+
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 from backend.database import engine, SessionLocal
 from backend.models import Base, User, Project, Task
@@ -31,7 +35,7 @@ from backend.ai_parser import parse_task_description
 # Security & Auth Configuration
 # ─────────────────────────────────────────────────────────────────
 
-SECRET_KEY = "CHANGE_THIS_TO_A_SECURE_RANDOM_SECRET_KEY_IN_PRODUCTION"
+SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_THIS_TO_A_SECURE_RANDOM_SECRET_KEY_IN_PRODUCTION")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -53,7 +57,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -79,7 +83,12 @@ app = FastAPI(
 # Explicit CORS configuration (Restricting wildcard for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://taskflow-theta-six-59.vercel.app", "http://localhost:3000"],
+    allow_origins=[
+        "https://taskflow-theta-six-59.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

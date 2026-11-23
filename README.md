@@ -15,6 +15,7 @@ one FastAPI service backed by a single SQLite database.
 5. [Database schema](#5-database-schema)
 6. [Section 2 — Algorithms: complexity write-up and benchmark results](#6-section-2--algorithms)
 7. [Section 3 — AI Quick-Add: prompting rationale and worked examples](#7-section-3--ai-quick-add)
+8. [Changelog — Recent Fixes](#8-changelog--recent-fixes)
 
 ---
 
@@ -658,3 +659,115 @@ git log --graph --all --oneline
 
 This will show the feature branch (`feature/algorithms-and-ai`) branching off `main`,
 receiving commits for Sections 2 and 3, and being merged back.
+
+
+
+---
+
+## 8. Changelog — Recent Fixes
+
+> Date: 2026-11-23
+
+Niche saare bugs aur issues ka record hai jo project review ke baad identify aur fix kiye gaye.
+
+---
+
+### Backend
+
+#### `backend/main.py`
+
+**1. SECRET_KEY hardcoded tha**
+- **Problem:** `SECRET_KEY` directly source code mein likha tha — production mein yeh unsafe hai.
+- **Fix:** Ab `os.getenv("SECRET_KEY", fallback)` se load hota hai. Value `backend/.env` mein define ki gayi hai.
+
+**2. `datetime.utcnow()` deprecated**
+- **Problem:** Python 3.12+ mein `datetime.utcnow()` deprecated mark ho gayi hai, warning aata tha.
+- **Fix:** `datetime.now(timezone.utc)` se replace kiya. `timezone` import bhi add kiya.
+
+**3. CORS configuration incomplete**
+- **Problem:** `allow_origins` mein sirf `localhost:3000` aur Vercel URL tha. VS Code Live Server (`localhost:5500`) se frontend open karne par CORS block hota tha.
+- **Fix:** `http://localhost:5500` aur `http://127.0.0.1:5500` allow_origins mein add kiye.
+
+---
+
+#### `backend/.env`
+
+**4. SECRET_KEY missing**
+- **Problem:** `.env` file mein `DATABASE_URL` toh tha lekin `SECRET_KEY` nahi tha.
+- **Fix:** `SECRET_KEY` entry add ki gayi.
+
+---
+
+#### `backend/schemas.py`
+
+**5. `QuickAddRequest` description validator kaam nahi karta tha**
+- **Problem:** `description_not_blank` validator sirf `return v` kar raha tha — whitespace-only description (e.g. `"   "`) bhi accept ho jaati thi.
+- **Fix:** Proper blank/whitespace check add kiya aur `.strip()` apply kiya.
+
+```python
+# Pehle (broken)
+def description_not_blank(cls, v: str) -> str:
+    return v
+
+# Baad mein (fixed)
+def description_not_blank(cls, v: str) -> str:
+    if not v.strip():
+        raise ValueError("description must not be blank or whitespace-only")
+    return v.strip()
+```
+
+---
+
+#### `seed.py`
+
+**6. Seed users bina password ke ban rahe the**
+- **Problem:** `User` objects mein `hashed_password` field nahi diya ja raha tha. DB mein `NOT NULL` constraint hai isliye seed run karne par error aata tha.
+- **Fix:** `bcrypt` import add kiya aur dono seed users ke liye `bcrypt.hashpw()` se `hashed_password` generate karke pass kiya (`password123`).
+
+---
+
+### Frontend
+
+#### `frontend/script.js`
+
+**7. "Add Task" button ka SVG icon gayab ho jaata tha**
+- **Problem:** `toggleAddTaskBtn.textContent = "+ Add Task"` set karne se button ka SVG icon destroy ho jaata tha — sirf plain text dikhta tha.
+- **Fix:** `textContent` ki jagah `innerHTML` use kiya taaki SVG bhi sahi se render ho.
+
+```js
+// Pehle (broken)
+toggleAddTaskBtn.textContent = "+ Add Task";
+
+// Baad mein (fixed)
+toggleAddTaskBtn.innerHTML = '<svg ...>...</svg> Add Task';
+```
+
+**8. Logout ke baad filter dropdown reset nahi hota tha**
+- **Problem:** `logoutUser()` mein `renderProjects([])` call hoti thi lekin `filterProjectSel` ke options clear nahi hote the. Purane project options filter mein rehjate the.
+- **Fix:** `logoutUser()` mein yeh lines add ki gayi:
+  ```js
+  activeProjectId = null;
+  while (filterProjectSel.options.length > 1) filterProjectSel.remove(1);
+  filterProjectSel.value = "";
+  ```
+
+---
+
+#### `frontend/index.html`
+
+**9. "Owner user ID" input field redundant tha**
+- **Problem:** Sidebar mein "Add Project" form mein `Owner user ID` field tha. Lekin backend ka `POST /projects` endpoint `owner_id` JWT token se khud set karta hai — yeh field kisi kaam ki nahi thi aur user ko confuse karti thi.
+- **Fix:** Field aur uska error span HTML se remove kar diya.
+
+---
+
+### Files Modified
+
+| File | Changes |
+|---|---|
+| `backend/main.py` | SECRET_KEY env se load, datetime fix, CORS origins update |
+| `backend/.env` | SECRET_KEY add kiya |
+| `backend/schemas.py` | QuickAddRequest description validator fix |
+| `seed.py` | hashed_password add kiya seed users mein |
+| `frontend/script.js` | SVG innerHTML fix, logoutUser cleanup fix |
+| `frontend/index.html` | Redundant owner ID field remove kiya |

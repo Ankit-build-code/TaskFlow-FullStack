@@ -17,6 +17,7 @@ Run once per size:
 import sys
 import os
 import random
+import bcrypt
 
 # ── allow import from backend/ when running from repo root ──────
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
@@ -94,11 +95,13 @@ def seed(n: int):
         # ── Users ────────────────────────────────────────────────
         user1 = db.query(User).filter_by(email="alice@blinkit.com").first()
         if not user1:
-            user1 = User(name="Alice Sharma", email="alice@blinkit.com")
+            pwd1 = bcrypt.hashpw("password123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            user1 = User(name="Alice Sharma", email="alice@blinkit.com", hashed_password=pwd1)
             db.add(user1)
         user2 = db.query(User).filter_by(email="bob@blinkit.com").first()
         if not user2:
-            user2 = User(name="Bob Verma", email="bob@blinkit.com")
+            pwd2 = bcrypt.hashpw("password123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            user2 = User(name="Bob Verma", email="bob@blinkit.com", hashed_password=pwd2)
             db.add(user2)
         db.flush()  # assigns IDs without committing
 

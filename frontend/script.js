@@ -175,11 +175,11 @@ toggleAddTaskBtn.addEventListener("click", () => {
   if (isOpen) {
     addTaskPanel.classList.remove("add-task-open");
     addTaskPanel.classList.add("add-task-collapsed");
-    toggleAddTaskBtn.textContent = "+ Add Task";
+    toggleAddTaskBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add Task';
   } else {
     addTaskPanel.classList.remove("add-task-collapsed");
     addTaskPanel.classList.add("add-task-open");
-    toggleAddTaskBtn.textContent = "✕ Close";
+    toggleAddTaskBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg> Close';
     taskTitleInput.focus();
   }
 });
@@ -187,7 +187,7 @@ toggleAddTaskBtn.addEventListener("click", () => {
 cancelAddTaskBtn.addEventListener("click", () => {
   addTaskPanel.classList.remove("add-task-open");
   addTaskPanel.classList.add("add-task-collapsed");
-  toggleAddTaskBtn.textContent = "+ Add Task";
+  toggleAddTaskBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add Task';
   taskForm.reset();
   clearError(taskTitleError);
   clearError(taskProjectError);
@@ -526,7 +526,7 @@ taskForm.addEventListener("submit", async e => {
     taskForm.reset();
     addTaskPanel.classList.remove("add-task-open");
     addTaskPanel.classList.add("add-task-collapsed");
-    toggleAddTaskBtn.textContent = "+ Add Task";
+    toggleAddTaskBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add Task';
     showToast("Task added!");
   } catch (err) { showToast(`Error: ${err.message}`, "error"); }
 });
@@ -697,8 +697,13 @@ function logoutUser() {
   // 2. Local lists khali karo
   tasks = [];
   projects = [];
+  activeProjectId = null;
 
-  // 3. Screen update karo
+  // 3. filterProjectSel ka "All projects" ke alawa baaki options hatao
+  while (filterProjectSel.options.length > 1) filterProjectSel.remove(1);
+  filterProjectSel.value = "";
+
+  // 4. Screen update karo
   renderTasks([]);
   renderProjects([]);
   showToast("Logged out successfully!");
